@@ -3,635 +3,185 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXUS // ТЕРМИНАЛ ОПЕРАТОРА</title>
+<title>RPM AMC // ТЕРМИНАЛ ЦПД</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #04050a;
-    --panel: #080c14;
-    --border: #0e1a2e;
-    --cyan: #00e5ff;
-    --pink: #ff0066;
-    --text: #8ba0b8;
-    --text-bright: #c8d8e8;
-    --red: #ff2233;
-    --red-bg: rgba(255,34,51,0.1);
-    --red-glow: rgba(255,34,51,0.4);
-    --green: #00ff88;
-    --green-bg: rgba(0,255,136,0.1);
-    --green-glow: rgba(0,255,136,0.4);
-    --blue: #0088ff;
-    --blue-bg: rgba(0,136,255,0.1);
-    --blue-glow: rgba(0,136,255,0.4);
+    --bg: #04050a; --panel: #080c14; --border: #0e1a2e;
+    --cyan: #00e5ff; --pink: #ff0066; --text: #8ba0b8; --text-bright: #c8d8e8;
+    --red: #ff2233; --red-bg: rgba(255,34,51,0.1); --red-glow: rgba(255,34,51,0.4);
+    --green: #00ff88; --green-bg: rgba(0,255,136,0.1); --green-glow: rgba(0,255,136,0.4);
+    --blue: #0088ff; --blue-bg: rgba(0,136,255,0.1); --blue-glow: rgba(0,136,255,0.4);
+    --gold: #ffaa44;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'Share Tech Mono', monospace; color: var(--text); min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px); pointer-events: none; z-index: 9999; }
 
-  body {
-    background: var(--bg);
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-    cursor: crosshair;
-  }
+  /* ── OVERLAY SCREENS ── */
+  .screen { position: fixed; inset: 0; z-index: 8000; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0; background: var(--bg); }
+  .screen.hidden { display: none !important; }
+  .screen-box { background: var(--panel); border: 1px solid var(--cyan); box-shadow: 0 0 60px rgba(0,229,255,0.15), 0 20px 80px rgba(0,0,0,0.8); width: 400px; max-width: 95vw; animation: modalIn 0.3s ease; }
+  .screen-title { font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 4px; color: var(--cyan); text-shadow: 0 0 12px var(--cyan); padding: 22px 28px 16px; border-bottom: 1px solid rgba(0,229,255,0.15); display: flex; align-items: center; justify-content: space-between; }
+  .screen-body { padding: 24px 28px; }
+  .screen-label { font-size: 10px; letter-spacing: 2px; color: rgba(139,160,184,0.5); text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
+  .screen-label:first-child { margin-top: 0; }
+  .screen-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.2); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 14px; letter-spacing: 2px; padding: 10px 14px; outline: none; transition: border-color 0.2s; margin-bottom: 4px; }
+  .screen-input:focus { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.1); }
+  .screen-input::placeholder { color: rgba(0,229,255,0.2); font-size: 12px; }
+  .screen-btn { width: 100%; margin-top: 20px; background: rgba(0,229,255,0.08); border: 1px solid var(--cyan); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 12px; cursor: pointer; transition: all 0.2s; }
+  .screen-btn:hover { background: rgba(0,229,255,0.15); box-shadow: 0 0 20px rgba(0,229,255,0.25); color: #fff; }
+  .screen-msg { margin-top: 10px; font-size: 11px; letter-spacing: 1px; min-height: 16px; text-align: center; }
+  .screen-msg.err { color: var(--red); } .screen-msg.ok { color: var(--green); }
+  .screen-hint { font-size: 10px; color: rgba(139,160,184,0.35); letter-spacing: 1px; line-height: 1.6; margin-top: 6px; }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.15) 2px,
-      rgba(0,0,0,0.15) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
-  }
+  /* LOADING */
+  #screen-loading .load-icon { font-family: 'Orbitron', monospace; font-size: 32px; color: var(--cyan); text-shadow: 0 0 30px var(--cyan); animation: pulse 1.2s ease-in-out infinite; letter-spacing: 6px; margin-bottom: 16px; }
+  #screen-loading .load-sub { font-size: 11px; color: rgba(0,229,255,0.4); letter-spacing: 4px; text-transform: uppercase; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   /* TOP BAR */
-  #topbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(4,5,10,0.95);
-    border-bottom: 1px solid var(--cyan);
-    box-shadow: 0 0 20px rgba(0,229,255,0.15), inset 0 -1px 0 rgba(0,229,255,0.3);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    height: 56px;
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-
-  #topbar-title {
-    font-family: 'Orbitron', monospace;
-    font-weight: 900;
-    font-size: 13px;
-    color: var(--cyan);
-    text-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,229,255,0.5);
-    letter-spacing: 3px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    animation: glitch 6s infinite;
-  }
-
-  #mat-display {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-left: auto;
-    flex-shrink: 1;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  #mat-total {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    font-weight: 400;
-    color: #ffaa44;
-    text-shadow: 0 0 6px rgba(255,170,68,0.5);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  #mat-breakdown {
-    font-size: 10px;
-    color: rgba(139,160,184,0.55);
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  @keyframes glitch {
-    0%,94%,100% { clip-path: none; transform: none; }
-    95% { clip-path: inset(30% 0 40% 0); transform: translate(-2px,0); }
-    96% { clip-path: inset(60% 0 10% 0); transform: translate(2px,0); }
-    97% { clip-path: none; transform: none; }
-    98% { clip-path: inset(10% 0 70% 0); transform: translate(-1px,0); }
-    99% { clip-path: none; }
-  }
-
-  .tb-btn {
-    background: transparent;
-    border: 1px solid rgba(0,229,255,0.3);
-    color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 7px 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .tb-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0,229,255,0.05);
-    transform: translateX(-100%);
-    transition: transform 0.2s;
-  }
-
+  #topbar { position: sticky; top: 0; z-index: 100; background: rgba(4,5,10,0.95); border-bottom: 1px solid var(--cyan); box-shadow: 0 0 20px rgba(0,229,255,0.15), inset 0 -1px 0 rgba(0,229,255,0.3); backdrop-filter: blur(10px); display: none; align-items: center; padding: 0 16px; height: 56px; gap: 8px; flex-wrap: nowrap; }
+  #topbar.visible { display: flex; }
+  #topbar-title { font-family: 'Orbitron', monospace; font-weight: 900; font-size: 13px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0,229,255,0.5); letter-spacing: 3px; white-space: nowrap; flex-shrink: 0; animation: glitch 6s infinite; }
+  #mat-display { display: flex; align-items: baseline; gap: 8px; margin-left: auto; flex-shrink: 1; min-width: 0; overflow: hidden; }
+  #mat-total { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: #ffaa44; text-shadow: 0 0 6px rgba(255,170,68,0.5); white-space: nowrap; flex-shrink: 0; }
+  #user-chip { font-size: 10px; letter-spacing: 1.5px; padding: 4px 10px; border: 1px solid rgba(0,229,255,0.3); color: rgba(0,229,255,0.7); white-space: nowrap; flex-shrink: 0; }
+  @keyframes glitch { 0%,94%,100%{clip-path:none;transform:none} 95%{clip-path:inset(30% 0 40% 0);transform:translate(-2px,0)} 96%{clip-path:inset(60% 0 10% 0);transform:translate(2px,0)} 97%{clip-path:none;transform:none} 98%{clip-path:inset(10% 0 70% 0);transform:translate(-1px,0)} 99%{clip-path:none} }
+  .tb-btn { background: transparent; border: 1px solid rgba(0,229,255,0.3); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; padding: 7px 10px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; white-space: nowrap; flex-shrink: 0; }
+  .tb-btn::before { content: ''; position: absolute; inset: 0; background: rgba(0,229,255,0.05); transform: translateX(-100%); transition: transform 0.2s; }
   .tb-btn:hover::before { transform: translateX(0); }
-  .tb-btn:hover {
-    border-color: var(--cyan);
-    box-shadow: 0 0 12px rgba(0,229,255,0.3), inset 0 0 12px rgba(0,229,255,0.05);
-    color: #fff;
-  }
-
-  .tb-btn.danger {
-    border-color: rgba(255,34,51,0.3);
-    color: var(--red);
-  }
+  .tb-btn:hover { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.3), inset 0 0 12px rgba(0,229,255,0.05); color: #fff; }
+  .tb-btn.danger { border-color: rgba(255,34,51,0.3); color: var(--red); }
   .tb-btn.danger::before { background: rgba(255,34,51,0.05); }
-  .tb-btn.danger:hover {
-    border-color: var(--red);
-    box-shadow: 0 0 12px rgba(255,34,51,0.3), inset 0 0 12px rgba(255,34,51,0.05);
-    color: #fff;
-  }
-
-  .tb-btn.accent {
-    border-color: rgba(0,255,136,0.4);
-    color: var(--green);
-  }
+  .tb-btn.danger:hover { border-color: var(--red); box-shadow: 0 0 12px rgba(255,34,51,0.3); color: #fff; }
+  .tb-btn.accent { border-color: rgba(0,255,136,0.4); color: var(--green); }
   .tb-btn.accent::before { background: rgba(0,255,136,0.05); }
-  .tb-btn.accent:hover {
-    border-color: var(--green);
-    box-shadow: 0 0 12px rgba(0,255,136,0.3), inset 0 0 12px rgba(0,255,136,0.05);
-    color: #fff;
-  }
+  .tb-btn.accent:hover { border-color: var(--green); box-shadow: 0 0 12px rgba(0,255,136,0.3); color: #fff; }
+  .tg-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+  .tg-status.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .tg-status.err { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+  .tg-status.wait { background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: pulse 1s infinite; }
 
   /* MAIN */
-  #main {
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-    position: relative;
-    z-index: 1;
-  }
-
-  #status-bar {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 28px;
-    font-size: 11px;
-    letter-spacing: 1px;
-  }
-
-  .stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text);
-  }
-
-  .stat-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+  #main { max-width: 900px; margin: 40px auto; padding: 0 20px; position: relative; z-index: 1; display: none; }
+  #main.visible { display: block; }
+  #status-bar { display: flex; gap: 24px; margin-bottom: 28px; font-size: 11px; letter-spacing: 1px; }
+  .stat-pill { display: flex; align-items: center; gap: 8px; color: var(--text); }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .stat-dot.red   { background: var(--red);   box-shadow: 0 0 6px var(--red); }
   .stat-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .stat-dot.blue  { background: var(--blue);  box-shadow: 0 0 6px var(--blue); }
 
-  /* PLAYER LIST */
-  #player-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 80px 20px;
-    color: rgba(139,160,184,0.3);
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  .empty-state span {
-    display: block;
-    font-family: 'Orbitron', monospace;
-    font-size: 24px;
-    margin-bottom: 12px;
-    color: rgba(0,229,255,0.15);
-  }
-
   /* PLAYER ROW */
-  .player-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 18px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.25s;
-    position: relative;
-    overflow: hidden;
-    user-select: none;
-  }
-
-  @keyframes rowIn {
-    from { opacity: 0; transform: translateX(-16px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-
-  .player-row::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    transition: all 0.25s;
-  }
-
+  #player-list { display: flex; flex-direction: column; gap: 6px; }
+  .empty-state { text-align: center; padding: 80px 20px; color: rgba(139,160,184,0.3); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+  .empty-state span { display: block; font-family: 'Orbitron', monospace; font-size: 24px; margin-bottom: 12px; color: rgba(0,229,255,0.15); }
+  .player-row { display: flex; align-items: center; padding: 12px 18px; background: var(--panel); border: 1px solid var(--border); cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; user-select: none; }
+  @keyframes rowIn { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:translateX(0)} }
+  .player-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; transition: all 0.25s; }
   .player-row:hover { background: rgba(8,12,20,0.95); }
-
-  .player-row.state-red {
-    border-color: rgba(255,34,51,0.35);
-    background: var(--red-bg);
-  }
-  .player-row.state-red::before { background: var(--red); box-shadow: 0 0 8px var(--red); }
-  .player-row.state-red:hover { box-shadow: 0 0 20px var(--red-glow); }
-
-  .player-row.state-green {
-    border-color: rgba(0,255,136,0.35);
-    background: var(--green-bg);
-  }
+  .player-row.state-red   { border-color: rgba(255,34,51,0.35);  background: var(--red-bg); }
+  .player-row.state-red::before   { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+  .player-row.state-red:hover     { box-shadow: 0 0 20px var(--red-glow); }
+  .player-row.state-green { border-color: rgba(0,255,136,0.35); background: var(--green-bg); }
   .player-row.state-green::before { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .player-row.state-green:hover { box-shadow: 0 0 20px var(--green-glow); }
-
-  .player-row.state-blue {
-    border-color: rgba(0,136,255,0.35);
-    background: var(--blue-bg);
-  }
-  .player-row.state-blue::before { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
-  .player-row.state-blue:hover { box-shadow: 0 0 20px var(--blue-glow); }
-
-  .player-icon {
-    width: 28px; height: 28px;
-    border-radius: 2px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    margin-right: 14px;
-    flex-shrink: 0;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
+  .player-row.state-green:hover   { box-shadow: 0 0 20px var(--green-glow); }
+  .player-row.state-blue  { border-color: rgba(0,136,255,0.35); background: var(--blue-bg); }
+  .player-row.state-blue::before  { background: var(--blue);  box-shadow: 0 0 8px var(--blue); }
+  .player-row.state-blue:hover    { box-shadow: 0 0 20px var(--blue-glow); }
+  .player-icon { width: 28px; height: 28px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 14px; flex-shrink: 0; }
   .state-red   .player-icon { background: rgba(255,34,51,0.2);  color: var(--red);   border: 1px solid rgba(255,34,51,0.5); }
   .state-green .player-icon { background: rgba(0,255,136,0.2);  color: var(--green); border: 1px solid rgba(0,255,136,0.5); }
   .state-blue  .player-icon { background: rgba(0,136,255,0.2);  color: var(--blue);  border: 1px solid rgba(0,136,255,0.5); }
-
-  .player-name {
-    font-size: 14px;
-    letter-spacing: 1.5px;
-    flex: 1;
-  }
-
+  .player-name { font-size: 14px; letter-spacing: 1.5px; flex: 1; }
   .state-red   .player-name { color: var(--red);   text-shadow: 0 0 8px rgba(255,34,51,0.5); }
   .state-green .player-name { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,0.5); }
   .state-blue  .player-name { color: var(--blue);  text-shadow: 0 0 8px rgba(0,136,255,0.5); }
-
-  .player-collected {
-    font-size: 12px;
-    color: rgba(139,160,184,0.6);
-    letter-spacing: 1px;
-    margin-left: 40px;
-    flex-shrink: 0;
-  }
-
-  .player-timer {
-    font-size: 11px;
-    margin-left: 16px;
-    flex-shrink: 0;
-    opacity: 0.7;
-    min-width: 70px;
-    text-align: right;
-  }
-
+  .player-collected { font-size: 12px; color: rgba(139,160,184,0.6); letter-spacing: 1px; margin-left: 40px; flex-shrink: 0; }
+  .player-timer { font-size: 11px; margin-left: 16px; flex-shrink: 0; opacity: 0.7; min-width: 70px; text-align: right; }
   .state-red   .player-timer { color: var(--red); }
   .state-green .player-timer { color: var(--green); }
   .state-blue  .player-timer { color: var(--blue); }
-
-  .burger-icon {
-    width: 20px;
-    display: flex; flex-direction: column; gap: 4px;
-    margin-left: 16px;
-    opacity: 0.4;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-  }
-  .burger-icon span {
-    display: block; height: 1px;
-    background: var(--text-bright);
-  }
+  .burger-icon { width: 20px; display: flex; flex-direction: column; gap: 4px; margin-left: 16px; opacity: 0.4; transition: opacity 0.2s; flex-shrink: 0; }
+  .burger-icon span { display: block; height: 1px; background: var(--text-bright); }
   .player-row:hover .burger-icon { opacity: 0.9; }
 
   /* CONTEXT MENU */
-  #ctx-menu {
-    position: fixed;
-    z-index: 500;
-    background: #080c14;
-    border: 1px solid var(--cyan);
-    box-shadow: 0 0 30px rgba(0,229,255,0.2), 0 8px 32px rgba(0,0,0,0.6);
-    min-width: 200px;
-    display: none;
-    animation: menuIn 0.15s ease;
-  }
-
-  @keyframes menuIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-
-  .ctx-header {
-    padding: 10px 16px 8px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: rgba(0,229,255,0.5);
-    border-bottom: 1px solid rgba(0,229,255,0.1);
-    text-transform: uppercase;
-  }
-
-  .ctx-item {
-    padding: 12px 16px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text-bright);
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-  }
-
+  #ctx-menu { position: fixed; z-index: 500; background: #080c14; border: 1px solid var(--cyan); box-shadow: 0 0 30px rgba(0,229,255,0.2), 0 8px 32px rgba(0,0,0,0.6); min-width: 200px; display: none; animation: menuIn 0.15s ease; }
+  @keyframes menuIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+  .ctx-header { padding: 10px 16px 8px; font-size: 10px; letter-spacing: 2px; color: rgba(0,229,255,0.5); border-bottom: 1px solid rgba(0,229,255,0.1); text-transform: uppercase; }
+  .ctx-item { padding: 12px 16px; font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 10px; color: var(--text-bright); border: none; background: none; width: 100%; text-align: left; }
   .ctx-item:hover { background: rgba(0,229,255,0.07); color: var(--cyan); }
   .ctx-item.ctx-danger:hover { background: rgba(255,34,51,0.07); color: var(--red); }
   .ctx-item::before { content: '›'; opacity: 0.5; }
 
   /* MODALS */
-  #modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(4,5,10,0.85);
-    z-index: 200;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-  }
-
+  #modal-overlay { position: fixed; inset: 0; background: rgba(4,5,10,0.85); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
   #modal-overlay.active { display: flex; }
-
-  .modal {
-    background: var(--panel);
-    border: 1px solid var(--cyan);
-    box-shadow: 0 0 40px rgba(0,229,255,0.2), 0 20px 60px rgba(0,0,0,0.7);
-    padding: 0;
-    min-width: 360px;
-    max-width: 520px;
-    width: 90%;
-    animation: modalIn 0.2s ease;
-    display: none;
-  }
-
+  .modal { background: var(--panel); border: 1px solid var(--cyan); box-shadow: 0 0 40px rgba(0,229,255,0.2), 0 20px 60px rgba(0,0,0,0.7); padding: 0; min-width: 360px; max-width: 520px; width: 90%; animation: modalIn 0.2s ease; display: none; }
   .modal.active { display: block; }
-
-  @keyframes modalIn {
-    from { opacity: 0; transform: translateY(-20px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .modal-header {
-    padding: 18px 24px 14px;
-    border-bottom: 1px solid rgba(0,229,255,0.15);
-    font-family: 'Orbitron', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--cyan);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .modal-close {
-    cursor: pointer;
-    color: var(--text);
-    font-size: 18px;
-    line-height: 1;
-    transition: color 0.15s;
-    background: none; border: none;
-    font-family: monospace;
-  }
+  @keyframes modalIn { from{opacity:0;transform:translateY(-20px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  .modal-header { padding: 18px 24px 14px; border-bottom: 1px solid rgba(0,229,255,0.15); font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700; color: var(--cyan); letter-spacing: 3px; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+  .modal-close { cursor: pointer; color: var(--text); font-size: 18px; line-height: 1; transition: color 0.15s; background: none; border: none; font-family: monospace; }
   .modal-close:hover { color: var(--red); }
-
   .modal-body { padding: 24px; }
-
-  .modal-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: rgba(139,160,184,0.5);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .modal-input {
-    width: 100%;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(0,229,255,0.2);
-    color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 20px;
-  }
-
+  .modal-label { font-size: 10px; letter-spacing: 2px; color: rgba(139,160,184,0.5); text-transform: uppercase; margin-bottom: 8px; }
+  .modal-input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.2); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 14px; letter-spacing: 2px; padding: 10px 14px; outline: none; transition: border-color 0.2s; margin-bottom: 20px; }
   .modal-input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.15); }
   .modal-input::placeholder { color: rgba(0,229,255,0.2); }
-
-  .modal-btn {
-    background: rgba(0,229,255,0.08);
-    border: 1px solid var(--cyan);
-    color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 10px 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    margin-bottom: 8px;
-  }
-
-  .modal-btn:hover {
-    background: rgba(0,229,255,0.15);
-    box-shadow: 0 0 16px rgba(0,229,255,0.3);
-    color: #fff;
-  }
-
-  .modal-btn.danger {
-    background: rgba(255,34,51,0.08);
-    border-color: var(--red);
-    color: var(--red);
-  }
-  .modal-btn.danger:hover {
-    background: rgba(255,34,51,0.15);
-    box-shadow: 0 0 16px rgba(255,34,51,0.3);
-    color: #fff;
-  }
-
-  .modal-msg {
-    font-size: 12px;
-    letter-spacing: 1px;
-    min-height: 18px;
-    margin-top: 8px;
-  }
-  .modal-msg.ok  { color: var(--green); }
-  .modal-msg.err { color: var(--red); }
-
-  /* MATERIALS MODAL */
-  .mat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-
-  .mat-field {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .mat-input {
-    width: 100%;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(0,229,255,0.2);
-    color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    letter-spacing: 2px;
-    padding: 8px 12px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .mat-input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.15); }
-  .mat-input::placeholder { color: rgba(0,229,255,0.2); }
-
-  .mat-sub {
-    font-size: 9px;
-    color: rgba(139,160,184,0.35);
-    letter-spacing: 0.5px;
-  }
-
-  .mat-result {
-    border: 1px solid rgba(0,229,255,0.15);
-    background: rgba(0,229,255,0.03);
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    line-height: 1.8;
-  }
-
-  .mat-total-line {
-    font-family: 'Orbitron', monospace;
-    font-size: 16px;
-    color: var(--cyan);
-    text-shadow: 0 0 10px var(--cyan);
-    margin-bottom: 4px;
-  }
-
-  .mat-detail-line {
-    font-size: 10px;
-    color: rgba(139,160,184,0.55);
-    letter-spacing: 0.5px;
-  }
-
-  .btn-green {
-    background: rgba(0,255,136,0.08);
-    border: 1px solid var(--green);
-    color: var(--green);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 10px 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    margin-bottom: 8px;
-  }
-
-  .btn-green:hover {
-    background: rgba(0,255,136,0.15);
-    box-shadow: 0 0 16px rgba(0,255,136,0.3);
-    color: #fff;
-  }
+  .modal-btn { background: rgba(0,229,255,0.08); border: 1px solid var(--cyan); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 10px 24px; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 8px; }
+  .modal-btn:hover { background: rgba(0,229,255,0.15); box-shadow: 0 0 16px rgba(0,229,255,0.3); color: #fff; }
+  .modal-btn.danger { background: rgba(255,34,51,0.08); border-color: var(--red); color: var(--red); }
+  .modal-btn.danger:hover { background: rgba(255,34,51,0.15); box-shadow: 0 0 16px rgba(255,34,51,0.3); color: #fff; }
+  .modal-msg { font-size: 12px; letter-spacing: 1px; min-height: 18px; margin-top: 8px; }
+  .modal-msg.ok { color: var(--green); } .modal-msg.err { color: var(--red); }
+  .mat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .mat-field { display: flex; flex-direction: column; gap: 5px; }
+  .mat-input { background: rgba(0,0,0,0.4); border: 1px solid rgba(0,229,255,0.2); color: var(--cyan); font-family: 'Share Tech Mono', monospace; font-size: 14px; padding: 8px 12px; outline: none; width: 100%; transition: border-color 0.2s; }
+  .mat-input:focus { border-color: var(--cyan); }
+  .mat-sub { font-size: 10px; color: rgba(139,160,184,0.35); letter-spacing: 0.5px; }
+  .mat-result { background: rgba(0,0,0,0.3); border: 1px solid rgba(0,229,255,0.15); padding: 14px 18px; margin-bottom: 20px; }
+  .mat-total-line { font-size: 15px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); margin-bottom: 4px; }
+  .mat-detail-line { font-size: 10px; color: rgba(139,160,184,0.55); letter-spacing: 0.5px; }
+  .btn-green { background: rgba(0,255,136,0.08); border: 1px solid var(--green); color: var(--green); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 10px 24px; cursor: pointer; transition: all 0.2s; width: 100%; margin-bottom: 8px; }
+  .btn-green:hover { background: rgba(0,255,136,0.15); box-shadow: 0 0 16px rgba(0,255,136,0.3); color: #fff; }
 
   /* TOAST */
-  #toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 9000;
-    font-size: 12px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 12px 20px;
-    border: 1px solid var(--cyan);
-    background: rgba(8,12,20,0.97);
-    box-shadow: 0 0 20px rgba(0,229,255,0.2);
-    color: var(--cyan);
-    transform: translateX(120%);
-    transition: transform 0.3s ease;
-  }
+  #toast { position: fixed; bottom: 30px; right: 30px; z-index: 9000; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 20px; border: 1px solid var(--cyan); background: rgba(8,12,20,0.97); box-shadow: 0 0 20px rgba(0,229,255,0.2); color: var(--cyan); transform: translateX(120%); transition: transform 0.3s ease; }
   #toast.show { transform: translateX(0); }
   #toast.toast-err { border-color: var(--red);   color: var(--red);   box-shadow: 0 0 20px rgba(255,34,51,0.2); }
   #toast.toast-ok  { border-color: var(--green); color: var(--green); box-shadow: 0 0 20px rgba(0,255,136,0.2); }
-
-  @keyframes redPulse {
-    0%,100% { box-shadow: none; }
-    50% { box-shadow: 0 0 15px rgba(255,34,51,0.2); }
-  }
+  @keyframes redPulse { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 15px rgba(255,34,51,0.2)} }
   .state-red { animation: redPulse 3s ease-in-out infinite; }
   .player-row.animate-in { animation: rowIn 0.3s ease both; }
 
+  /* LOG PANEL */
+  #log-panel { position: fixed; right: 0; top: 56px; bottom: 0; width: 340px; background: rgba(4,5,10,0.97); border-left: 1px solid var(--cyan); box-shadow: -8px 0 40px rgba(0,229,255,0.08); z-index: 90; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.28s cubic-bezier(.4,0,.2,1); }
+  #log-panel.open { transform: translateX(0); }
+  #log-header { padding: 14px 18px 12px; border-bottom: 1px solid rgba(0,229,255,0.15); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  #log-title { font-family: 'Orbitron', monospace; font-size: 10px; letter-spacing: 3px; color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  #log-close { background: none; border: none; color: var(--text); cursor: pointer; font-size: 16px; line-height: 1; transition: color 0.15s; }
+  #log-close:hover { color: var(--red); }
+  #log-entries { flex: 1; overflow-y: auto; padding: 10px 0; }
+  #log-entries::-webkit-scrollbar { width: 3px; }
+  #log-entries::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); }
+  .log-entry { padding: 9px 18px; border-bottom: 1px solid rgba(14,26,46,0.6); animation: logIn 0.25s ease both; }
+  @keyframes logIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .log-entry:last-child { border-bottom: none; }
+  .log-who { font-size: 11px; letter-spacing: 1px; margin-bottom: 2px; }
+  .log-who .log-name { color: var(--cyan); text-shadow: 0 0 6px rgba(0,229,255,0.4); }
+  .log-who .log-verb { color: var(--text-bright); }
+  .log-detail { font-size: 10px; color: rgba(139,160,184,0.5); letter-spacing: 0.5px; margin-bottom: 3px; }
+  .log-time { font-size: 9px; color: rgba(139,160,184,0.3); letter-spacing: 1px; }
+  .log-entry.log-type-ok   .log-who .log-verb { color: var(--green); }
+  .log-entry.log-type-err  .log-who .log-verb { color: var(--red); }
+  .log-entry.log-type-info .log-who .log-verb { color: var(--gold); }
+  #log-empty { text-align: center; padding: 40px 20px; color: rgba(139,160,184,0.2); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+  #log-badge { position: absolute; top: -5px; right: -5px; background: var(--pink); color: #fff; font-size: 9px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  #log-badge.show { opacity: 1; }
+  #btn-log-open { position: relative; }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); }
@@ -639,21 +189,43 @@
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div id="topbar">
-  <div id="topbar-title">NEXUS // ТЕРМИНАЛ ОПЕРАТОРА</div>
-
-  <div id="mat-display">
-    <div id="mat-total">— МАТ.</div>
-  </div>
-
-  <button class="tb-btn accent" id="btn-mat-open">📦 ПОДСЧЁТ МАТЕРИАЛОВ</button>
-  <button class="tb-btn" onclick="openModal('modal-add')">+ ДОБАВИТЬ ИГРОКА</button>
-  <button class="tb-btn" onclick="openModal('modal-find')">⌕ НАЙТИ ИГРОКА</button>
-  <button class="tb-btn danger" onclick="openModal('modal-remove')">✕ УДАЛИТЬ ПО ИМЕНИ</button>
+<!-- ══════════════ LOADING SCREEN ══════════════ -->
+<div class="screen" id="screen-loading">
+  <div class="load-icon">[ ЦПД ]</div>
+  <div class="load-sub">Подключение к базе данных...</div>
 </div>
 
-<!-- MAIN -->
+
+<!-- ══════════════ USERNAME SCREEN ══════════════ -->
+<div class="screen hidden" id="screen-username">
+  <div class="screen-box">
+    <div class="screen-title">
+      <span>RPM AMC // ТЕРМИНАЛ ЦПД</span>
+      <span style="color:var(--cyan);font-size:9px;">ИДЕНТИФИКАЦИЯ</span>
+    </div>
+    <div class="screen-body">
+      <div class="screen-label">Введите ваш никнейм оператора</div>
+      <input class="screen-input" id="username-input" placeholder="ваш никнейм" maxlength="32" autocomplete="off" onkeydown="if(event.key==='Enter')doSetUsername()">
+      <button class="screen-btn" onclick="doSetUsername()">► ВОЙТИ В СИСТЕМУ</button>
+      <div class="screen-msg" id="username-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TOP BAR ══════════════ -->
+<div id="topbar">
+  <div id="topbar-title">RPM AMC // ТЕРМИНАЛ ЦПД</div>
+  <div id="mat-display"><div id="mat-total">— МАТ.</div></div>
+  <span id="tg-dot" class="tg-status wait" title="Telegram"></span>
+  <span id="user-chip">—</span>
+  <button class="tb-btn accent" id="btn-mat-open">📦 МАТЕРИАЛЫ</button>
+  <button class="tb-btn" onclick="openModal('modal-add')">+ ЮНИТ</button>
+  <button class="tb-btn" onclick="openModal('modal-find')">⌕ НАЙТИ</button>
+  <button class="tb-btn danger" onclick="openModal('modal-remove')">✕ УДАЛИТЬ</button>
+  <button class="tb-btn" id="btn-log-open" onclick="toggleLog()">▤ ЛОГ<span id="log-badge"></span></button>
+</div>
+
+<!-- ══════════════ MAIN ══════════════ -->
 <div id="main">
   <div id="status-bar">
     <div class="stat-pill"><div class="stat-dot red"></div><span id="cnt-red">0 НУЖЕН СБОР</span></div>
@@ -663,36 +235,29 @@
   <div id="player-list"></div>
 </div>
 
-<!-- CONTEXT MENU -->
+<!-- ══════════════ CONTEXT MENU ══════════════ -->
 <div id="ctx-menu">
-  <div class="ctx-header" id="ctx-name">ПАРАМЕТРЫ ИГРОКА</div>
+  <div class="ctx-header" id="ctx-name">ПАРАМЕТРЫ ЮНИТА</div>
   <button class="ctx-item" id="ctx-collect">МАТЕРИАЛЫ СОБРАНЫ</button>
-  <button class="ctx-item ctx-danger" id="ctx-remove">УДАЛИТЬ ИГРОКА</button>
+  <button class="ctx-item ctx-danger" id="ctx-remove">УДАЛИТЬ ЮНИТ</button>
 </div>
 
-<!-- MODALS -->
+<!-- ══════════════ MODALS ══════════════ -->
 <div id="modal-overlay">
-
   <!-- ADD -->
   <div class="modal" id="modal-add">
-    <div class="modal-header">
-      ДОБАВИТЬ ИГРОКА
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
+    <div class="modal-header">ДОБАВИТЬ ЮНИТ ЦПД <button class="modal-close" onclick="closeModal()">&#x2715;</button></div>
     <div class="modal-body">
-      <div class="modal-label">Имя игрока</div>
+      <div class="modal-label">Имя юнита</div>
       <input class="modal-input" id="add-name" placeholder="введите имя" maxlength="32" onkeydown="if(event.key==='Enter')doAdd()">
-      <button class="modal-btn" onclick="doAdd()">ДОБАВИТЬ АГЕНТА</button>
+      <button class="modal-btn" onclick="doAdd()">ДОБАВИТЬ ЮНИТ</button>
       <div class="modal-msg" id="add-msg"></div>
     </div>
   </div>
 
   <!-- FIND -->
   <div class="modal" id="modal-find">
-    <div class="modal-header">
-      НАЙТИ ИГРОКА
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
+    <div class="modal-header">НАЙТИ ЮНИТ <button class="modal-close" onclick="closeModal()">&#x2715;</button></div>
     <div class="modal-body">
       <div class="modal-label">Поиск по имени</div>
       <input class="modal-input" id="find-name" placeholder="введите имя" onkeydown="if(event.key==='Enter')doFind()" maxlength="32">
@@ -703,105 +268,331 @@
 
   <!-- REMOVE -->
   <div class="modal" id="modal-remove">
-    <div class="modal-header">
-      УДАЛИТЬ ИГРОКА
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
+    <div class="modal-header">УДАЛИТЬ ЮНИТ <button class="modal-close" onclick="closeModal()">&#x2715;</button></div>
     <div class="modal-body">
-      <div class="modal-label">Имя игрока</div>
+      <div class="modal-label">Имя юнита</div>
       <input class="modal-input" id="rm-name" placeholder="введите имя" onkeydown="if(event.key==='Enter')doRemoveByName()" maxlength="32">
-      <button class="modal-btn danger" onclick="doRemoveByName()">УДАЛИТЬ АГЕНТА</button>
+      <button class="modal-btn danger" onclick="doRemoveByName()">УДАЛИТЬ ЮНИТ</button>
       <div class="modal-msg" id="rm-msg"></div>
     </div>
   </div>
 
-  <!-- MATERIALS COUNTER -->
+  <!-- MATERIALS -->
   <div class="modal" id="modal-mat">
-    <div class="modal-header">
-      ПОДСЧЁТ МАТЕРИАЛОВ
-      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
-    </div>
+    <div class="modal-header">ПОДСЧЁТ МАТЕРИАЛОВ <button class="modal-close" onclick="closeModal()">&#x2715;</button></div>
     <div class="modal-body">
-
       <div id="mat-result-box" class="mat-result" style="display:none">
         <div class="mat-total-line" id="mat-res-total"></div>
         <div class="mat-detail-line" id="mat-res-detail"></div>
       </div>
-
       <div class="mat-grid">
-        <div class="mat-field">
-          <div class="modal-label">Бочки</div>
-          <input class="mat-input" id="mat-barrels" type="number" min="0" value="0">
-          <div class="mat-sub">27 слотов × 64 = 1728 каждая</div>
-        </div>
-        <div class="mat-field">
-          <div class="modal-label">Тумбочки</div>
-          <input class="mat-input" id="mat-chests" type="number" min="0" value="0">
-          <div class="mat-sub">9 слотов × 64 = 576 каждая</div>
-        </div>
-        <div class="mat-field">
-          <div class="modal-label">Мешки</div>
-          <input class="mat-input" id="mat-bags" type="number" min="0" value="0">
-          <div class="mat-sub">× 64 каждый</div>
-        </div>
-        <div class="mat-field">
-          <div class="modal-label">Доп. Материалы</div>
-          <input class="mat-input" id="mat-extra" type="number" min="0" value="0">
-          <div class="mat-sub">фиксированное число</div>
-        </div>
+        <div class="mat-field"><div class="modal-label">Бочки</div><input class="mat-input" id="mat-barrels" type="number" min="0" value="0"><div class="mat-sub">27 слотов × 64</div></div>
+        <div class="mat-field"><div class="modal-label">Тумбочки</div><input class="mat-input" id="mat-chests" type="number" min="0" value="0"><div class="mat-sub">9 слотов × 64</div></div>
+        <div class="mat-field"><div class="modal-label">Мешки</div><input class="mat-input" id="mat-bags" type="number" min="0" value="0"><div class="mat-sub">× 64 каждый</div></div>
+        <div class="mat-field"><div class="modal-label">Доп. материалы</div><input class="mat-input" id="mat-extra" type="number" min="0" value="0"><div class="mat-sub">фиксированное число</div></div>
       </div>
-
       <button class="modal-btn" onclick="calcMaterials()">РАССЧИТАТЬ</button>
       <button class="btn-green" onclick="saveMaterials()">&#x2713; СОХРАНИТЬ В ПАНЕЛЬ</button>
       <div class="modal-msg" id="mat-msg"></div>
     </div>
   </div>
-
 </div>
 
 <!-- TOAST -->
 <div id="toast"></div>
 
+<!-- LOG PANEL -->
+<div id="log-panel">
+  <div id="log-header">
+    <div id="log-title">▤ ЛОГ ДЕЙСТВИЙ</div>
+    <button id="log-close" onclick="toggleLog()">&#x2715;</button>
+  </div>
+  <div id="log-entries"><div id="log-empty">НЕТ ЗАПИСЕЙ</div></div>
+</div>
+
 <script>
-// DATA
-const STORAGE_KEY = 'nexus_players_v1';
-const MAT_KEY     = 'nexus_materials_v1';
-let players = [];
-let ctxTargetId = null;
-let toastTimer  = null;
+// ═══════════════════════════════════════════════════
+// CONFIG — замените токен на новый после отзыва!
+// ═══════════════════════════════════════════════════
+const BOT_TOKEN = '8968773984:AAGpFW8r2BU3R6KjUw1--N97GnE2C5hPyS4';
+
+// ═══════════════════════════════════════════════════
+// PROXY / VPN-BYPASS — для пользователей в России
+// Список зеркал Telegram API (попробуем по очереди)
+// ═══════════════════════════════════════════════════
+const TG_MIRRORS = [
+  'https://api.telegram.org',        // официальный
+  'https://tg.i-c-a.su',            // community mirror #1
+  'https://telegram.api.bz',        // community mirror #2
+  'https://telegramapi.org',         // community mirror #3
+];
+
+let activeMirror  = null;   // кэш — успешно работающее зеркало
+let mirrorTested  = false;
+
+// Определить рабочее зеркало (однократно при старте)
+async function detectMirror() {
+  if (activeMirror) return activeMirror;
+  for (const base of TG_MIRRORS) {
+    try {
+      const r = await fetch(`${base}/bot${BOT_TOKEN}/getMe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        signal: AbortSignal.timeout(4000)
+      });
+      const j = await r.json();
+      if (j && (j.ok || j.error_code)) {   // любой ответ от TG = зеркало живое
+        activeMirror = base;
+        console.log('[MIRROR] Активное зеркало:', base);
+        if (base !== TG_MIRRORS[0]) showMirrorBadge(base);
+        return base;
+      }
+    } catch(e) {
+      console.warn('[MIRROR] Недоступно:', base, e.message || e);
+    }
+  }
+  activeMirror = TG_MIRRORS[0]; // fallback
+  return activeMirror;
+}
+
+function showMirrorBadge(mirror) {
+  const label = mirror.replace('https://', '');
+  let badge = document.getElementById('mirror-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'mirror-badge';
+    badge.style.cssText = 'font-size:9px;letter-spacing:1px;padding:3px 8px;border:1px solid rgba(255,170,68,0.4);color:rgba(255,170,68,0.8);white-space:nowrap;flex-shrink:0;';
+    const topbar = document.getElementById('topbar');
+    if (topbar) topbar.appendChild(badge);
+  }
+  badge.textContent = '⚡ PROXY: ' + label;
+  badge.title = 'Используется зеркало API вместо api.telegram.org (Россия/блокировка)';
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+const CHAT_ID     = '6072373813';  // hardcoded — no setup needed
+let STATE_MSG_ID  = null;  // message_id of the pinned state message
+let players       = [];
 let savedMaterials = null;
-let isStartup = true;
+let currentUser   = null;  // nickname from cookie
+let ctxTargetId   = null;
+let toastTimer    = null;
+let isStartup     = true;
 let lastNewPlayerId = null;
+let tgConnected   = false;
+let saveQueued    = false;
+let actionLogs    = [];  // [{ts, user, action, detail, type}]
+let unreadLogs    = 0;
+let logPanelOpen  = false;
 
-function loadData() {
-  try { const r = localStorage.getItem(STORAGE_KEY); if (r) players = JSON.parse(r); } catch(e) { players = []; }
-  try { const m = localStorage.getItem(MAT_KEY);     if (m) savedMaterials = JSON.parse(m); } catch(e) { savedMaterials = null; }
+// ═══════════════════════════════════════════════════
+// COOKIE HELPERS
+// ═══════════════════════════════════════════════════
+function setCookie(name, value, days) {
+  const exp = new Date(Date.now() + days*86400000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${exp};path=/`;
 }
 
+function getCookie(name) {
+  const m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// ═══════════════════════════════════════════════════
+// TELEGRAM API
+// ═══════════════════════════════════════════════════
+async function tg(method, params = {}, timeoutMs = 8000) {
+  const isLongPoll = (method === 'getUpdates' && (params.timeout || 0) > 5);
+  const abortMs    = isLongPoll ? (((params.timeout || 25) + 5) * 1000) : timeoutMs;
+  const base = activeMirror || await detectMirror();
+  try {
+    const r = await fetch(`${base}/bot${BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      signal: AbortSignal.timeout(abortMs)
+    });
+    return await r.json();
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      console.warn('[TG] Mirror failed, resetting:', base, e.message || e);
+      activeMirror = null;
+    }
+    console.error('TG error:', method, e.message || e);
+    return { ok: false };
+  }
+}
+
+function setTgStatus(s) {
+  const dot = document.getElementById('tg-dot');
+  if (dot) { dot.className = 'tg-status ' + s; }
+  tgConnected = (s === 'ok');
+}
+
+// ─── Load state from pinned message ───
+async function tgLoadState() {
+  setTgStatus('wait');
+  const res = await tg('getChat', { chat_id: CHAT_ID });
+  if (!res.ok) { setTgStatus('err'); return false; }
+
+  const pinned = res.result.pinned_message;
+  if (pinned && pinned.text && pinned.text.startsWith('RPM_AMC_STATE:')) {
+    STATE_MSG_ID = pinned.message_id;
+    try {
+      const raw  = pinned.text.replace('RPM_AMC_STATE:', '');
+      const data = JSON.parse(raw);
+      players        = data.players       || [];
+      savedMaterials = data.materials     || null;
+      actionLogs     = data.logs          || [];
+    } catch(e) { console.warn('State parse error:', e); }
+  }
+
+  setTgStatus('ok');
+  return true;
+}
+
+// ─── Save state to pinned message ───
+async function tgSaveState() {
+  if (!CHAT_ID) return;
+  const payload = 'RPM_AMC_STATE:' + JSON.stringify({ players, materials: savedMaterials, logs: actionLogs.slice(-120) });
+
+  if (STATE_MSG_ID) {
+    const r = await tg('editMessageText', { chat_id: CHAT_ID, message_id: STATE_MSG_ID, text: payload });
+    if (!r.ok) {
+      // Message might be gone — resend
+      STATE_MSG_ID = null;
+      await tgSaveState();
+    }
+  } else {
+    const r = await tg('sendMessage', { chat_id: CHAT_ID, text: payload });
+    if (r.ok) {
+      STATE_MSG_ID = r.result.message_id;
+      await tg('pinChatMessage', { chat_id: CHAT_ID, message_id: STATE_MSG_ID, disable_notification: true });
+    }
+  }
+}
+
+// ─── Log action ───
+async function tgLog(action, detail = '') {
+  if (!CHAT_ID) return;
+  const now  = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+  const user = currentUser || '—';
+  const text = `📋 <b>RPM AMC ЦПД</b>\n👤 Оператор: <code>${escHtml(user)}</code>\n🔹 Действие: ${action}\n${detail ? '📌 ' + escHtml(detail) + '\n' : ''}🕐 ${now} (МСК)`;
+  await tg('sendMessage', { chat_id: CHAT_ID, text, parse_mode: 'HTML' });
+}
+
+// ─── Log visit ───
+async function tgLogVisit(nick) {
+  if (!CHAT_ID) return;
+  const now  = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+  const ua   = navigator.userAgent.slice(0, 80);
+  const text = `🟢 <b>ВХОД В СИСТЕМУ</b>\n👤 Оператор: <code>${escHtml(nick)}</code>\n🕐 ${now} (МСК)\n📱 ${escHtml(ua)}`;
+  await tg('sendMessage', { chat_id: CHAT_ID, text, parse_mode: 'HTML' });
+}
+
+// ═══════════════════════════════════════════════════
+// STARTUP FLOW
+// ═══════════════════════════════════════════════════
+async function boot() {
+  showScreen('screen-loading');
+
+  // Detect working mirror first (proxy for Russia)
+  await detectMirror();
+
+  // Load data from Telegram (CHAT_ID is hardcoded)
+  const ok = await tgLoadState();
+  if (!ok) tryLocalFallback();
+
+  // Check username in localStorage (persistent, works everywhere)
+  currentUser = localStorage.getItem('rpm_amc_user');
+  if (!currentUser) {
+    showScreen('screen-username');
+    return;
+  }
+
+  showApp();
+}
+
+function tryLocalFallback() {
+  try { players        = JSON.parse(localStorage.getItem('rpm_amc_players_v2') || '[]'); } catch(e) {}
+  try { savedMaterials = JSON.parse(localStorage.getItem('rpm_amc_mats_v2') || 'null'); } catch(e) {}
+}
+
+
+async function doSetUsername() {
+  const val = document.getElementById('username-input').value.trim();
+  const msg = document.getElementById('username-msg');
+  if (!val) { setScreenMsg(msg, 'ВВЕДИТЕ НИКНЕЙМ', 'err'); return; }
+  if (val.length < 2) { setScreenMsg(msg, 'СЛИШКОМ КОРОТКИЙ', 'err'); return; }
+
+  currentUser = val;
+  localStorage.setItem('rpm_amc_user', val);
+  setScreenMsg(msg, 'ДОБРО ПОЖАЛОВАТЬ, ' + val.toUpperCase(), 'ok');
+  // log visit after currentUser is set
+  await tgLogVisit(val);
+  pushLog('вошёл в систему', '', 'info');
+
+  setTimeout(showApp, 600);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+}
+
+function showApp() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('topbar').classList.add('visible');
+  document.getElementById('main').classList.add('visible');
+  document.getElementById('user-chip').textContent = (currentUser || '').toUpperCase();
+  updateMatTopbar();
+  render();
+  toast('СИСТЕМА ЦПД АКТИВНА', 'ok');
+  startPolling();
+}
+
+function setScreenMsg(el, text, type) { el.textContent = text; el.className = 'screen-msg ' + type; }
+
+// ═══════════════════════════════════════════════════
+// SAVE (debounced — don't spam TG API)
+// ═══════════════════════════════════════════════════
+let saveDebounce = null;
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+  // Local fallback always
+  localStorage.setItem('rpm_amc_players_v2', JSON.stringify(players));
+  localStorage.setItem('rpm_amc_mats_v2', JSON.stringify(savedMaterials));
+
+  // Mark current state as "ours" so backgroundSync won't re-apply it
+  lastKnownRaw = JSON.stringify({ players, materials: savedMaterials });
+  lastKnownStateHash = JSON.stringify({ players, savedMaterials });
+
+  // Debounce TG save (500ms)
+  clearTimeout(saveDebounce);
+  saveDebounce = setTimeout(tgSaveState, 500);
 }
 
-// MSK TIME
+// ═══════════════════════════════════════════════════
+// TIME HELPERS
+// ═══════════════════════════════════════════════════
 function nowMSK() { return new Date(Date.now() + 3 * 3600000); }
 
 function formatMSK(utcMs) {
   const d = new Date(utcMs + 3 * 3600000);
-  const hh = String(d.getUTCHours()).padStart(2,'0');
-  const mm = String(d.getUTCMinutes()).padStart(2,'0');
-  const dd = String(d.getUTCDate()).padStart(2,'0');
-  const mo = String(d.getUTCMonth()+1).padStart(2,'0');
-  return `${hh}:${mm} / ${dd}.${mo}.${d.getUTCFullYear()}`;
+  return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} / ${String(d.getUTCDate()).padStart(2,'0')}.${String(d.getUTCMonth()+1).padStart(2,'0')}.${d.getUTCFullYear()}`;
 }
 
 function baseMSKTime() {
   const d = nowMSK();
-  const dd = String(d.getUTCDate()).padStart(2,'0');
-  const mo = String(d.getUTCMonth()+1).padStart(2,'0');
-  return `00:00 / ${dd}.${mo}.${d.getUTCFullYear()}`;
+  return `00:00 / ${String(d.getUTCDate()).padStart(2,'0')}.${String(d.getUTCMonth()+1).padStart(2,'0')}.${d.getUTCFullYear()}`;
 }
 
-// STATE
+// ═══════════════════════════════════════════════════
+// STATE LOGIC
+// ═══════════════════════════════════════════════════
 const ONE_HOUR = 3600000;
 const HOURS_24 = 86400000;
 
@@ -825,23 +616,23 @@ function getTimerLabel(p) {
   return `${String(m).padStart(2,'0')}м ${String(s).padStart(2,'0')}с`;
 }
 
-// RENDER — diff-based, no full rebuild
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
 function render() {
   const list = document.getElementById('player-list');
   let cntRed=0, cntGreen=0, cntBlue=0;
 
   if (!players.length) {
     if (!list.querySelector('.empty-state')) {
-      list.innerHTML = '<div class="empty-state"><span>[NULL]</span>НЕТ АГЕНТОВ — ДОБАВЬТЕ ИГРОКА ЧТОБЫ НАЧАТЬ</div>';
+      list.innerHTML = '<div class="empty-state"><span>[NULL]</span>НЕТ ЮНИТОВ ЦПД — ДОБАВЬТЕ ЮНИТ ЧТОБЫ НАЧАТЬ</div>';
     }
-    updateCounts(0,0,0);
-    return;
+    updateCounts(0,0,0); return;
   }
 
   const emptyEl = list.querySelector('.empty-state');
   if (emptyEl) list.removeChild(emptyEl);
 
-  // Update / create rows
   players.forEach(p => {
     const state = getState(p);
     if (state==='red')   cntRed++;
@@ -849,23 +640,17 @@ function render() {
     if (state==='blue')  cntBlue++;
 
     let row = list.querySelector(`.player-row[data-id="${p.id}"]`);
-      if (!row) {
-        row = document.createElement('div');
-        row.dataset.id = p.id;
-        row.innerHTML = [
-          '<div class="player-icon"></div>',
-          '<div class="player-name"></div>',
-          '<div class="player-collected"></div>',
-          '<div class="player-timer"></div>',
-          '<div class="burger-icon"><span></span><span></span><span></span></div>'
-        ].join('');
-        row.addEventListener('click', e => { e.stopPropagation(); showCtxMenu(e, p.id, p.name); });
-        if (isStartup || p.id === lastNewPlayerId) {
-          row.classList.add('animate-in');
-          row.addEventListener('animationend', () => row.classList.remove('animate-in'), { once: true });
-        }
-        list.appendChild(row);
+    if (!row) {
+      row = document.createElement('div');
+      row.dataset.id = p.id;
+      row.innerHTML = ['<div class="player-icon"></div>','<div class="player-name"></div>','<div class="player-collected"></div>','<div class="player-timer"></div>','<div class="burger-icon"><span></span><span></span><span></span></div>'].join('');
+      row.addEventListener('click', e => { e.stopPropagation(); showCtxMenu(e, p.id, p.name); });
+      if (isStartup || p.id === lastNewPlayerId) {
+        row.classList.add('animate-in');
+        row.addEventListener('animationend', () => row.classList.remove('animate-in'), { once: true });
       }
+      list.appendChild(row);
+    }
 
     row.className = 'player-row state-' + state;
     row.querySelector('.player-icon').textContent      = p.name.slice(0,2).toUpperCase();
@@ -874,12 +659,9 @@ function render() {
     row.querySelector('.player-timer').textContent     = getTimerLabel(p);
   });
 
-  // Remove stale rows
   list.querySelectorAll('.player-row').forEach(row => {
     if (!players.find(p => p.id === row.dataset.id)) list.removeChild(row);
   });
-
-  // Re-order to match array
   players.forEach(p => {
     const row = list.querySelector(`.player-row[data-id="${p.id}"]`);
     if (row) list.appendChild(row);
@@ -896,100 +678,99 @@ function updateCounts(r,g,b) {
   document.getElementById('cnt-blue').textContent  = b + ' НА КУЛДАУНЕ';
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ═══════════════════════════════════════════════════
 // MATERIALS
+// ═══════════════════════════════════════════════════
 function calcMaterials() {
-  const barrels = parseInt(document.getElementById('mat-barrels').value) || 0;
-  const chests  = parseInt(document.getElementById('mat-chests').value)  || 0;
-  const bags    = parseInt(document.getElementById('mat-bags').value)    || 0;
-  const extra   = parseInt(document.getElementById('mat-extra').value)   || 0;
+  const barrels = parseInt(document.getElementById('mat-barrels').value)||0;
+  const chests  = parseInt(document.getElementById('mat-chests').value) ||0;
+  const bags    = parseInt(document.getElementById('mat-bags').value)   ||0;
+  const extra   = parseInt(document.getElementById('mat-extra').value)  ||0;
+  const total   = barrels*27*64 + chests*9*64 + bags*64 + extra;
+  const bT = barrels*27*64, cT = chests*9*64, bagT = bags*64;
 
-  const bTotal   = barrels * 27 * 64;
-  const cTotal   = chests  * 9  * 64;
-  const bagTotal = bags    * 64;
-  const total    = bTotal + cTotal + bagTotal + extra;
-
-  const box = document.getElementById('mat-result-box');
-  box.style.display = 'block';
+  document.getElementById('mat-result-box').style.display = 'block';
   document.getElementById('mat-res-total').textContent  = 'ИТОГО: ' + total.toLocaleString('ru-RU') + ' МАТ.';
-  document.getElementById('mat-res-detail').textContent =
-    'Бочки: ' + bTotal.toLocaleString('ru-RU') +
-    '  |  Тумбочки: ' + cTotal.toLocaleString('ru-RU') +
-    '  |  Мешки: ' + bagTotal.toLocaleString('ru-RU') +
-    '  |  Доп: ' + extra.toLocaleString('ru-RU');
-
-  setMsg(document.getElementById('mat-msg'), 'РАССЧИТАНО: ' + total.toLocaleString('ru-RU') + ' единиц', 'ok');
+  document.getElementById('mat-res-detail').textContent = 'Бочки: '+bT.toLocaleString('ru-RU')+'  |  Тумбочки: '+cT.toLocaleString('ru-RU')+'  |  Мешки: '+bagT.toLocaleString('ru-RU')+'  |  Доп: '+extra.toLocaleString('ru-RU');
+  setMsg(document.getElementById('mat-msg'), 'РАССЧИТАНО: '+total.toLocaleString('ru-RU')+' единиц', 'ok');
   return { barrels, chests, bags, extra, total };
 }
 
-function saveMaterials() {
+async function saveMaterials() {
   const data = calcMaterials();
   savedMaterials = data;
-  localStorage.setItem(MAT_KEY, JSON.stringify(savedMaterials));
+  saveData();
   updateMatTopbar();
-  toast('МАТЕРИАЛЫ СОХРАНЕНЫ В ПАНЕЛЬ', 'ok');
+  toast('МАТЕРИАЛЫ СОХРАНЕНЫ', 'ok');
+  pushLog('обновил материалы', data.total.toLocaleString('ru-RU') + ' ед.', 'info');
+  tgLog('💰 Материалы обновлены', 'Итого: ' + data.total.toLocaleString('ru-RU') + ' ед.');
   closeModal();
 }
 
 function updateMatTopbar() {
-  const totalEl = document.getElementById('mat-total');
-  if (!savedMaterials) {
-    totalEl.textContent = '— МАТ.';
-    return;
-  }
-  const { barrels, chests, bags, extra } = savedMaterials;
-  const bTotal   = barrels * 27 * 64;
-  const cTotal   = chests  * 9  * 64;
-  const bagTotal = bags    * 64;
-  const total    = bTotal + cTotal + bagTotal + extra;
-
-  totalEl.textContent = total.toLocaleString('ru-RU') + ' МАТ.';
+  const el = document.getElementById('mat-total');
+  if (!savedMaterials) { el.textContent = '— МАТ.'; return; }
+  const { barrels=0, chests=0, bags=0, extra=0 } = savedMaterials;
+  el.textContent = (barrels*27*64 + chests*9*64 + bags*64 + extra).toLocaleString('ru-RU') + ' МАТ.';
 }
 
 function openMatModal() {
   openModal('modal-mat');
   if (savedMaterials) {
     setTimeout(() => {
-      document.getElementById('mat-barrels').value = savedMaterials.barrels || 0;
-      document.getElementById('mat-chests').value  = savedMaterials.chests  || 0;
-      document.getElementById('mat-bags').value    = savedMaterials.bags    || 0;
-      document.getElementById('mat-extra').value   = savedMaterials.extra   || 0;
+      document.getElementById('mat-barrels').value = savedMaterials.barrels||0;
+      document.getElementById('mat-chests').value  = savedMaterials.chests ||0;
+      document.getElementById('mat-bags').value    = savedMaterials.bags   ||0;
+      document.getElementById('mat-extra').value   = savedMaterials.extra  ||0;
       calcMaterials();
     }, 60);
   }
 }
-
 document.getElementById('btn-mat-open').addEventListener('click', openMatModal);
 
+// ═══════════════════════════════════════════════════
 // CONTEXT MENU
+// ═══════════════════════════════════════════════════
 function showCtxMenu(e, id, name) {
   ctxTargetId = id;
   const menu = document.getElementById('ctx-menu');
   document.getElementById('ctx-name').textContent = name;
+
+  // Disable "collect" button if player is already green or blue (not red)
+  const p = players.find(x => x.id === id);
+  const state = p ? getState(p) : 'red';
+  const collectBtn = document.getElementById('ctx-collect');
+  const isLocked = state === 'green' || state === 'blue';
+  collectBtn.disabled = isLocked;
+  collectBtn.style.opacity    = isLocked ? '0.3' : '';
+  collectBtn.style.cursor     = isLocked ? 'not-allowed' : '';
+  collectBtn.style.color      = isLocked ? 'rgba(139,160,184,0.4)' : '';
+  collectBtn.title = isLocked
+    ? (state === 'green' ? 'Материалы уже собраны' : 'Юнит на кулдауне — ждите красного')
+    : '';
+
   menu.style.display = 'block';
   let x = e.clientX, y = e.clientY;
   if (x + 220 > window.innerWidth)  x = window.innerWidth  - 225;
   if (y + 110 > window.innerHeight) y = window.innerHeight - 115;
-  menu.style.left = x + 'px';
-  menu.style.top  = y + 'px';
+  menu.style.left = x + 'px'; menu.style.top = y + 'px';
 }
 
-function hideCtxMenu() {
-  document.getElementById('ctx-menu').style.display = 'none';
-  ctxTargetId = null;
-}
+function hideCtxMenu() { document.getElementById('ctx-menu').style.display='none'; ctxTargetId=null; }
 
 document.getElementById('ctx-collect').addEventListener('click', () => {
   if (!ctxTargetId) return;
   const p = players.find(x => x.id === ctxTargetId);
   if (!p) return;
+  const state = getState(p);
+  if (state === 'green' || state === 'blue') { hideCtxMenu(); return; } // blocked
   p.collectedAt = Date.now();
-  saveData();
-  render();
+  saveData(); render();
   toast('МАТЕРИАЛЫ СОБРАНЫ — ' + p.name, 'ok');
+  pushLog('собрал материалы', p.name, 'ok');
+  tgLog('✅ Сбор материалов', 'Юнит: ' + p.name);
   hideCtxMenu();
 });
 
@@ -997,121 +778,335 @@ document.getElementById('ctx-remove').addEventListener('click', () => {
   if (!ctxTargetId) return;
   const name = players.find(x => x.id === ctxTargetId)?.name || '';
   players = players.filter(x => x.id !== ctxTargetId);
-  saveData();
-  render();
-  toast('АГЕНТ ' + name + ' УДАЛЁН', 'err');
+  saveData(); render();
+  toast('ЮНИТ ' + name + ' УДАЛЁН', 'err');
+  pushLog('удалил юнит', name, 'err');
+  tgLog('❌ Юнит удалён', 'Юнит: ' + name);
   hideCtxMenu();
 });
 
-document.addEventListener('click', e => {
-  if (!e.target.closest('#ctx-menu')) hideCtxMenu();
-});
+document.addEventListener('click', e => { if (!e.target.closest('#ctx-menu')) hideCtxMenu(); });
 
+// ═══════════════════════════════════════════════════
 // MODALS
+// ═══════════════════════════════════════════════════
 function openModal(id) {
   document.getElementById('modal-overlay').classList.add('active');
   document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   setTimeout(() => {
     if (id !== 'modal-mat') {
-      const inp = document.querySelector('#' + id + ' .modal-input');
-      if (inp) { inp.value = ''; inp.focus(); }
+      const inp = document.querySelector('#'+id+' .modal-input');
+      if (inp) { inp.value=''; inp.focus(); }
     }
-    const msg = document.querySelector('#' + id + ' .modal-msg');
-    if (msg) { msg.textContent = ''; msg.className = 'modal-msg'; }
-    if (id === 'modal-mat') {
-      document.getElementById('mat-result-box').style.display = 'none';
-    }
+    const msg = document.querySelector('#'+id+' .modal-msg');
+    if (msg) { msg.textContent=''; msg.className='modal-msg'; }
+    if (id === 'modal-mat') document.getElementById('mat-result-box').style.display='none';
   }, 50);
 }
 
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('active');
-}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target===document.getElementById('modal-overlay')) closeModal(); });
 
-document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal-overlay')) closeModal();
-});
-
-// ADD PLAYER
+// ═══════════════════════════════════════════════════
+// ADD / FIND / REMOVE UNIT
+// ═══════════════════════════════════════════════════
 function doAdd() {
   const inp  = document.getElementById('add-name');
   const name = inp.value.trim();
   const msg  = document.getElementById('add-msg');
-  if (!name) { setMsg(msg, 'ИМЯ НЕ МОЖЕТ БЫТЬ ПУСТЫМ', 'err'); return; }
-  if (players.find(p => p.name.toLowerCase() === name.toLowerCase())) {
-    setMsg(msg, 'АГЕНТ УЖЕ СУЩЕСТВУЕТ', 'err'); return;
-  }
-  const newPlayer = { id: uid(), name, collectedAt: null };
-  players.push(newPlayer);
-  lastNewPlayerId = newPlayer.id;
-  saveData();
-  render();
-  setMsg(msg, 'АГЕНТ ДОБАВЛЕН: ' + name, 'ok');
+  if (!name) { setMsg(msg,'ИМЯ НЕ МОЖЕТ БЫТЬ ПУСТЫМ','err'); return; }
+  if (players.find(p => p.name.toLowerCase()===name.toLowerCase())) { setMsg(msg,'ЮНИТ УЖЕ СУЩЕСТВУЕТ','err'); return; }
+
+  const p = { id: uid(), name, collectedAt: null };
+  players.push(p);
+  lastNewPlayerId = p.id;
+  saveData(); render();
+  setMsg(msg,'ЮНИТ ДОБАВЛЕН: '+name,'ok');
   inp.value = '';
-  toast('АГЕНТ ' + name + ' ДОБАВЛЕН', 'ok');
+  toast('ЮНИТ '+name+' ДОБАВЛЕН','ok');
+  pushLog('добавил юнит', name, 'info');
+  tgLog('➕ Юнит добавлен', 'Юнит: '+name);
 }
 
-// FIND PLAYER
 function doFind() {
   const inp  = document.getElementById('find-name');
   const name = inp.value.trim().toLowerCase();
   const msg  = document.getElementById('find-msg');
-  if (!name) { setMsg(msg, 'ВВЕДИТЕ ИМЯ ДЛЯ ПОИСКА', 'err'); return; }
-  const idx = players.findIndex(p => p.name.toLowerCase().includes(name));
-  if (idx === -1) { setMsg(msg, 'АГЕНТ НЕ НАЙДЕН В БАЗЕ', 'err'); return; }
-  const p = players[idx];
+  if (!name) { setMsg(msg,'ВВЕДИТЕ ИМЯ ДЛЯ ПОИСКА','err'); return; }
+  const idx  = players.findIndex(p => p.name.toLowerCase().includes(name));
+  if (idx===-1) { setMsg(msg,'ЮНИТ НЕ НАЙДЕН В БАЗЕ','err'); return; }
+  const p     = players[idx];
   const state = getState(p);
-  const stateRu = state==='red' ? 'НУЖЕН СБОР' : state==='green' ? 'АКТИВЕН' : 'НА КУЛДАУНЕ';
-  setMsg(msg, 'НАЙДЕН: ' + p.name + ' — СТАТУС: ' + stateRu, 'ok');
+  const stR   = state==='red'?'НУЖЕН СБОР':state==='green'?'АКТИВЕН':'НА КУЛДАУНЕ';
+  setMsg(msg,'НАЙДЕН: '+p.name+' — СТАТУС: '+stR,'ok');
   closeModal();
   setTimeout(() => {
-    const row = document.querySelector('.player-row[data-id="' + p.id + '"]');
+    const row = document.querySelector('.player-row[data-id="'+p.id+'"]');
     if (row) {
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      row.style.outline = '2px solid #00e5ff';
-      row.style.outlineOffset = '2px';
-      setTimeout(() => { row.style.outline=''; row.style.outlineOffset=''; }, 2000);
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+      row.style.outline='2px solid #00e5ff'; row.style.outlineOffset='2px';
+      setTimeout(()=>{row.style.outline='';row.style.outlineOffset='';},2000);
     }
-  }, 150);
+  },150);
 }
 
-// REMOVE BY NAME
 function doRemoveByName() {
   const inp  = document.getElementById('rm-name');
   const name = inp.value.trim().toLowerCase();
   const msg  = document.getElementById('rm-msg');
-  if (!name) { setMsg(msg, 'ВВЕДИТЕ ИМЯ ДЛЯ УДАЛЕНИЯ', 'err'); return; }
-  const idx = players.findIndex(p => p.name.toLowerCase() === name);
-  if (idx === -1) { setMsg(msg, 'АГЕНТ НЕ НАЙДЕН', 'err'); return; }
-  const removed = players.splice(idx, 1)[0];
-  saveData();
-  render();
-  setMsg(msg, 'АГЕНТ ' + removed.name + ' УДАЛЁН', 'ok');
-  inp.value = '';
-  toast('АГЕНТ ' + removed.name + ' УДАЛЁН', 'err');
+  if (!name) { setMsg(msg,'ВВЕДИТЕ ИМЯ ДЛЯ УДАЛЕНИЯ','err'); return; }
+  const idx  = players.findIndex(p => p.name.toLowerCase()===name);
+  if (idx===-1) { setMsg(msg,'ЮНИТ НЕ НАЙДЕН','err'); return; }
+  const removed = players.splice(idx,1)[0];
+  saveData(); render();
+  setMsg(msg,'ЮНИТ '+removed.name+' УДАЛЁН','ok');
+  inp.value='';
+  toast('ЮНИТ '+removed.name+' УДАЛЁН','err');
+  pushLog('удалил юнит', removed.name, 'err');
+  tgLog('🗑 Юнит удалён (по имени)', 'Юнит: '+removed.name);
 }
 
+
+// ═══════════════════════════════════════════════════
+// ACTION LOG
+// ═══════════════════════════════════════════════════
+function pushLog(action, detail, type = 'ok') {
+  const entry = {
+    ts:     Date.now(),
+    user:   currentUser || '—',
+    action,
+    detail: detail || '',
+    type
+  };
+  actionLogs.unshift(entry);
+  if (actionLogs.length > 120) actionLogs.length = 120;
+  renderLog();
+  if (!logPanelOpen) bumpUnread(1);
+  saveData(); // persist to Telegram so other clients see it
+}
+
+function bumpUnread(n) {
+  unreadLogs += n;
+  const badge = document.getElementById('log-badge');
+  if (badge) { badge.textContent = unreadLogs > 9 ? '9+' : unreadLogs; badge.classList.add('show'); }
+}
+
+function renderLog() {
+  const box = document.getElementById('log-entries');
+  if (!box) return;
+  if (!actionLogs.length) { box.innerHTML = '<div id="log-empty">НЕТ ЗАПИСЕЙ</div>'; return; }
+  box.innerHTML = actionLogs.map(l => {
+    const time = new Date(l.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const date = new Date(l.ts).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    return `<div class="log-entry log-type-${l.type}">
+      <div class="log-who"><span class="log-name">${escHtml(l.user)}</span>: <span class="log-verb">${escHtml(l.action)}</span></div>
+      ${l.detail ? `<div class="log-detail">${escHtml(l.detail)}</div>` : ''}
+      <div class="log-time">${date} ${time}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLog() {
+  logPanelOpen = !logPanelOpen;
+  document.getElementById('log-panel').classList.toggle('open', logPanelOpen);
+  if (logPanelOpen) {
+    unreadLogs = 0;
+    const badge = document.getElementById('log-badge');
+    if (badge) badge.classList.remove('show');
+    renderLog();
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // HELPERS
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+// ═══════════════════════════════════════════════════
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function setMsg(el,text,type) { el.textContent=text; el.className='modal-msg '+type; }
 
-function setMsg(el, text, type) { el.textContent = text; el.className = 'modal-msg ' + type; }
-
-function toast(msg, type) {
-  const t = document.getElementById('toast');
-  if (toastTimer) clearTimeout(toastTimer);
-  t.textContent = msg;
-  t.className = 'show toast-' + type;
-  toastTimer = setTimeout(() => { t.className = ''; }, 2800);
+function toast(msg,type) {
+  const t=document.getElementById('toast');
+  if(toastTimer) clearTimeout(toastTimer);
+  t.textContent=msg; t.className='show toast-'+type;
+  toastTimer=setTimeout(()=>{t.className='';},2800);
 }
 
-// TICK — only update timers / states, no DOM wipe
-setInterval(render, 1000);
+setInterval(render,1000);
 
-// INIT
-loadData();
-render();
-updateMatTopbar();
+// ═══════════════════════════════════════════════════
+// BACKGROUND SYNC — pull fresh state from Telegram
+// ═══════════════════════════════════════════════════
+let syncPending = false;
+
+// Синхронизация через pinned message — запускается каждые 3 сек
+async function backgroundSync() {
+  if (syncPending || saveDebounce) return;
+  syncPending = true;
+  try {
+    const res = await tg('getChat', { chat_id: CHAT_ID }, 6000);
+    if (!res.ok) { syncPending = false; return; }
+
+    const pinned = res.result.pinned_message;
+    if (!pinned || !pinned.text || !pinned.text.startsWith('RPM_AMC_STATE:')) {
+      syncPending = false; return;
+    }
+
+    // Сравниваем по СОДЕРЖИМОМУ, не по message_id —
+    // editMessageText меняет текст, но id остаётся тем же!
+    const raw = pinned.text.replace('RPM_AMC_STATE:', '');
+    if (raw === lastKnownRaw) { syncPending = false; return; }
+
+    try {
+      const data = JSON.parse(raw);
+      players        = data.players   || [];
+      savedMaterials = data.materials || null;
+      STATE_MSG_ID   = pinned.message_id;
+      lastKnownRaw   = raw;
+      lastKnownStateHash = JSON.stringify(data);
+      // Merge new log entries from remote
+      const remoteLogs = data.logs || [];
+      const localIds   = new Set(actionLogs.map(l => l.ts + l.user));
+      let newEntries = 0;
+      remoteLogs.forEach(l => {
+        if (!localIds.has(l.ts + l.user)) { actionLogs.push(l); newEntries++; }
+      });
+      actionLogs.sort((a,b) => b.ts - a.ts);
+      if (newEntries > 0) { renderLog(); bumpUnread(newEntries); }
+      localStorage.setItem('rpm_amc_players_v2', JSON.stringify(players));
+      localStorage.setItem('rpm_amc_mats_v2',    JSON.stringify(savedMaterials));
+      updateMatTopbar();
+      render();
+      toast('↻ ДАННЫЕ ОБНОВЛЕНЫ', 'ok');
+    } catch(e) { console.warn('Sync parse error:', e); }
+  } catch(e) {}
+  syncPending = false;
+}
+
+// ═══════════════════════════════════════════════════
+// REAL-TIME SYNC via long-poll getUpdates
+// Объединяет /start обработку + live-sync состояния
+// ═══════════════════════════════════════════════════
+let pollingOffset  = 0;
+let pollingActive  = false;
+let syncCheckTimer = null;
+let lastKnownStateHash = null;
+let lastKnownRaw       = null;  // сырой JSON для сравнения
+
+// Быстрый хэш для сравнения состояния
+function stateHash() {
+  return JSON.stringify({ players, savedMaterials });
+}
+
+async function startPolling() {
+  if (pollingActive) return;
+  await tg('deleteWebhook', { drop_pending_updates: false });
+  pollingActive = true;
+  lastKnownStateHash = stateHash();
+  pollLoop();
+  // Периодическая проверка pinned-сообщения как запасной канал
+  syncCheckTimer = setInterval(backgroundSync, 3000); // every 3 sec = near real-time
+}
+
+async function pollLoop() {
+  if (!pollingActive) return;
+  try {
+    const res = await tg('getUpdates', {
+      offset: pollingOffset,
+      timeout: 25,
+      allowed_updates: ['message', 'channel_post', 'edited_channel_post']
+    });
+    if (res.ok && res.result && res.result.length) {
+      let stateChanged = false;
+      for (const update of res.result) {
+        pollingOffset = update.update_id + 1;
+        const msg = update.message || update.channel_post || update.edited_channel_post;
+        if (!msg) continue;
+
+        // /start в личке
+        if (
+          msg.chat && msg.chat.type === 'private' &&
+          msg.text && msg.text.trim().startsWith('/start')
+        ) {
+          handleStartCommand(msg);
+          continue;
+        }
+
+        // Изменение pinned-сообщения с состоянием (канал/группа)
+        if (
+          msg.text && msg.text.startsWith('RPM_AMC_STATE:') &&
+          String(msg.chat && msg.chat.id) === String(CHAT_ID)
+        ) {
+          try {
+            const data = JSON.parse(msg.text.replace('RPM_AMC_STATE:', ''));
+            const newHash = JSON.stringify(data);
+            if (newHash !== lastKnownStateHash) {
+              players        = data.players   || [];
+              savedMaterials = data.materials || null;
+              STATE_MSG_ID   = msg.message_id;
+              lastKnownStateHash = newHash;
+              localStorage.setItem('rpm_amc_players_v2', JSON.stringify(players));
+              localStorage.setItem('rpm_amc_mats_v2',    JSON.stringify(savedMaterials));
+              updateMatTopbar();
+              render();
+              toast('↻ ДАННЫЕ СИНХРОНИЗИРОВАНЫ', 'ok');
+              stateChanged = true;
+            }
+          } catch(e) { console.warn('Live-sync parse error:', e); }
+        }
+      }
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Poll loop error:', e.message || e);
+  }
+  // Немедленно запускаем следующий цикл — так получаем <1с задержку
+  setTimeout(pollLoop, 200);
+}
+
+async function handleStartCommand(msg) {
+  const chatId  = msg.chat.id;
+  const from    = msg.from || {};
+  const name    = [from.first_name, from.last_name].filter(Boolean).join(' ') || 'Оператор';
+  const uname   = from.username ? '@' + from.username : '—';
+  const userId  = from.id || '—';
+
+  // 1. Send typing action
+  await tg('sendChatAction', { chat_id: chatId, action: 'typing' });
+
+  // 2. Small realistic delay
+  await new Promise(r => setTimeout(r, 1200));
+
+  // 3. Welcome reply to user
+  await tg('sendMessage', {
+    chat_id: chatId,
+    parse_mode: 'HTML',
+    text:
+      `🖥 <b>RPM AMC // ТЕРМИНАЛ ЦПД</b>\n\n` +
+      `Добро пожаловать, <code>${escHtml(name)}</code>!\n\n` +
+      `Вы подключились к системе мониторинга ЦПД.\n` +
+      `Доступ открывается через веб-интерфейс.\n\n` +
+      `<i>Система готова к работе.</i>`
+  });
+
+  // 4. Log to admin channel
+  if (CHAT_ID) {
+    const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    await tg('sendMessage', {
+      chat_id: CHAT_ID,
+      parse_mode: 'HTML',
+      text:
+        `🤖 <b>RPM AMC ЦПД — /start</b>\n` +
+        `👤 Имя: <code>${escHtml(name)}</code>\n` +
+        `🔗 Username: ${escHtml(uname)}\n` +
+        `🆔 ID: <code>${escHtml(String(userId))}</code>\n` +
+        `🕐 ${now} (МСК)`
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+boot();
 </script>
 </body>
 </html>
